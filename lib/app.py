@@ -1,21 +1,36 @@
-from flask import Flask, make_response, jsonify, request
+from flask import Flask, make_response, jsonify, request, session
 from flask_migrate import Migrate
 from flask_cors import CORS
 from flask_restful import Api, Resource
 from werkzeug.exceptions import NotFound
+from flask_bcrypt import Bcrypt
 from main import db, User
 
 app = Flask(__name__)
-api= Api(app)
-CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.py"
+app.secret_key = b'\x10J\x11lL\x13\xbe\x86\xfe\xa9\xc6\x06\xcbY)\x81'
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
 
 
-migrate = Migrate(app, db)
-
+migrate = Migrate(app, db , render_as_batch=True)
 db.init_app(app)
+
+bcrypt = Bcrypt(app)
+
+api= Api(app)
+CORS(app, origins= "*")
+
+class CheckSession(Resource):
+    def get(self):
+        if session.get('user_id'):
+            user = User.query.filter(User.id==session['user_id']).first()
+            return user.to_dict(), 200
+        
+        return {'error': 'Resource unavailable'}
+    
+api.add_resource(CheckSession, "/session", endpoint="session")
 
 class Index(Resource):
     def get(self):
@@ -25,6 +40,48 @@ class Index(Resource):
         return make_response(response_body, status, headers)
 api.add_resource(Index, "/")
 
+
+class Signup(Resource):
+    def post(self):
+        name = request.get_json().get("name")
+        password = request.get_json().get("password")
+
+        if name and password:
+            new_user = User(name=name)
+            new_user.password_hash = password
+
+            db.session.add(new_user)
+            db.session.commit()
+
+            session["user_id"] = new_user.id
+            return new_user.to_dict(), 201
+        
+api.add_resource(Signup, "/signup", endpoint="signup")
+
+class Login(Resource):
+    def post(self):
+        name = request.get_json().get("name")
+        password = request.get_json().get("password")
+        user = User.query.filter(User.name==name).first()
+
+        if user and user.authenticate(password):
+            session["user_id"] = user.id
+
+            return user.to_dict(), 200
+        else:
+            return {'error': 'user or password id not correct!'}, 401
+        
+api.add_resource(Login, "/login", endpoint="login")
+
+class Logout(Resource):
+    def delete(self):
+        if session.get('user_id'):
+            session['user_id'] = None
+            return {'info': 'user logged out successfully'}
+        else:
+            return {'error': 'unauthorized'}, 401
+        
+api.add_resource(Logout, "/logout", endpoint="logout")
 
 
 class Users(Resource):
