@@ -6,12 +6,14 @@ name = "pypi"
 [packages]
 flask = "*"
 flask-migrate = "*"
-faker = "*"
 sqlalchemy-serializer = "*"
 requests = "*"
 flask-cors = "*"
 flask-restful = "*"
 flask-bcrypt = "*"
+gunicorn = "*"
+psycopg2-binary = "*"
+faker = "*"
 
 [dev-packages]
 

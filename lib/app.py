@@ -22,6 +22,12 @@ bcrypt = Bcrypt(app)
 api= Api(app)
 CORS(app, origins= "*")
 
+@app.before_request
+def check_if_logged_in():
+    if not session["user_id"]\
+    and request.endpoint != "login" and request.endpoint != "signup":
+        return {"error": "unauthorized"}, 401
+
 class CheckSession(Resource):
     def get(self):
         if session.get('user_id'):
@@ -55,6 +61,8 @@ class Signup(Resource):
 
             session["user_id"] = new_user.id
             return new_user.to_dict(), 201
+        
+        return {"error": "user details must be added"}, 422
         
 api.add_resource(Signup, "/signup", endpoint="signup")
 

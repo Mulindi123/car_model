@@ -11,7 +11,7 @@ bcrypt = Bcrypt()
 class User(db.Model, SerializerMixin):
     __tablename__ = "users"
 
-    serialize_rules = ("-cars.user")
+    serialize_rules = ("-cars.user",)
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False, unique=True)
@@ -47,7 +47,7 @@ class User(db.Model, SerializerMixin):
 class Car(db.Model, SerializerMixin):
     __tablename__ = "cars"
 
-    serialize_rules = ("-user.cars")
+    serialize_rules = ("-user.cars",)
     id = db.Column(db.Integer, primary_key=True)
     model = db.Column(db.String)
 
